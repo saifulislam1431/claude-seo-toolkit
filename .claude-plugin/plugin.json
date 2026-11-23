@@ -2,6 +2,19 @@
   "name": "seo-toolkit",
   "version": "1.0.0",
   "description": "SEO and performance agent with scheduled live-site monitoring (PageSpeed, crawl checks, Search Console, Bing, IndexNow) on a weekly, 10-day, 15-day or monthly interval, plus a Claude routine that fixes regressions in a PR.",
-  "author": { "name": "Jurnyon" },
-  "keywords": ["seo", "performance", "lighthouse", "pagespeed", "core-web-vitals", "monitoring"]
+  "author": {
+    "name": "Md. Saiful Islam",
+    "url": "https://github.com/saifulislam1431"
+  },
+  "keywords": [
+    "seo",
+    "performance",
+    "lighthouse",
+    "pagespeed",
+    "core-web-vitals",
+    "monitoring"
+  ],
+  "homepage": "https://github.com/saifulislam1431/claude-seo-toolkit",
+  "repository": "https://github.com/saifulislam1431/claude-seo-toolkit",
+  "license": "MIT"
 }

@@ -7,20 +7,20 @@ An SEO and performance agent, plus scheduled monitoring for any live website:
 - **`/seo-schedule`**: shows or changes the interval (weekly, 10days, 15days, monthly), or pauses it.
 - **`/seo-audit [fix]`**: measures the live site now and has the agent explain or fix what it finds.
 
-Full guide (how it works, keys, routine setup, troubleshooting): ask the toolkit's maintainer for the "SEO & Performance Agent — Developer Guide" doc.
+How a run works: a GitHub Actions workflow wakes daily and, on the scheduled days, measures the live site with PageSpeed Insights (mobile and desktop), checks robots.txt, the sitemap and every page's title, description, canonical and noindex, and reads Search Console and Bing data. It commits the results to `.seo/`, opens a GitHub issue when something regresses, and sends new sitemap URLs to IndexNow. An optional Claude cloud routine reads the report on the same days and opens a pull request with fixes; a person reviews and merges.
 
 ## Install as a plugin (recommended)
 
-In Claude Code (CLI or VS Code extension), replace `OWNER/REPO` with this repo's path on GitHub:
+In Claude Code (CLI or VS Code extension):
 
 ```
-/plugin marketplace add OWNER/REPO
-/plugin install seo-toolkit@jurnyon-tools
+/plugin marketplace add saifulislam1431/claude-seo-toolkit
+/plugin install seo-toolkit@saifulislam1431
 ```
 
 Restart Claude Code. As a plugin the commands are namespaced: `/seo-toolkit:seo-setup`, `/seo-toolkit:seo-schedule`, `/seo-toolkit:seo-audit`, and the agent is `seo-toolkit:seo`. You can also just ask, for example "set up SEO monitoring for this project".
 
-Get updates with `/plugin marketplace update jurnyon-tools`, then restart. If the repo is private, your GitHub credentials (`gh auth login`) must be able to read it.
+Get updates with `/plugin marketplace update saifulislam1431`, then restart.
 
 ## Install from the zip
 
@@ -59,6 +59,10 @@ Use one way, not both: a hand-copied toolkit and the plugin side by side show ev
 - A website that is live on a public URL, with its code in a GitHub repo you can push to.
 - Keys (all free) go into GitHub secrets: `PAGESPEED_API_KEY` (recommended), and optionally `GSC_SERVICE_ACCOUNT` and `BING_WEBMASTER_API_KEY`. `/seo-setup` explains how to get each.
 - For the optional Claude fix routine: a claude.ai account with Claude Code cloud access, connected to GitHub with `/web-setup` in the terminal CLI.
+
+## License
+
+MIT, see [LICENSE](LICENSE). Made by [Md. Saiful Islam](https://github.com/saifulislam1431).
 
 ## Layout
 

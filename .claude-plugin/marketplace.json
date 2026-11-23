@@ -1,8 +1,9 @@
 {
-  "name": "jurnyon-tools",
-  "description": "Jurnyon internal Claude Code tools.",
+  "name": "saifulislam1431",
+  "description": "Claude Code plugins by Md. Saiful Islam.",
   "owner": {
-    "name": "Jurnyon"
+    "name": "Md. Saiful Islam",
+    "url": "https://github.com/saifulislam1431"
   },
   "plugins": [
     {
