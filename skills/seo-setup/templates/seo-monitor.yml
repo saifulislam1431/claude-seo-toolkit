@@ -1,0 +1,103 @@
+name: SEO monitor (__NAME__)
+
+# Measures the live site with PageSpeed Insights, crawl checks, Search Console
+# and Bing on the interval set in __PROJECT_DIR__/.seo/config.json
+# (weekly | 10days | 15days | monthly). It wakes daily; on days that aren't
+# due it exits in seconds. Results are committed to .seo/; regressions open
+# (or update) a GitHub issue labelled "seo-regression".
+#
+# Change the interval: edit config.json, run /seo-schedule in Claude Code, or
+# use "Run workflow" below and pick "set_interval".
+#
+# Secrets (Settings → Secrets and variables → Actions), all optional but
+# PAGESPEED_API_KEY is strongly recommended:
+#   PAGESPEED_API_KEY        Google Cloud API key with PageSpeed Insights API enabled
+#   GSC_SERVICE_ACCOUNT      service account JSON key (added as a user in Search Console)
+#   BING_WEBMASTER_API_KEY   Bing Webmaster → Settings → API access
+
+on:
+  schedule:
+    - cron: "__CRON__"
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "Run now even if today isn't a scheduled day"
+        type: boolean
+        default: true
+      set_interval:
+        description: "Change the interval permanently (leave 'keep' to not change it)"
+        type: choice
+        default: keep
+        options: [keep, weekly, 10days, 15days, monthly]
+
+concurrency:
+  group: seo-monitor-__NAME__
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  monitor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: __PROJECT_DIR__
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+
+      - name: Measure
+        id: seo
+        env:
+          PAGESPEED_API_KEY: ${{ secrets.PAGESPEED_API_KEY }}
+          GSC_SERVICE_ACCOUNT: ${{ secrets.GSC_SERVICE_ACCOUNT }}
+          BING_WEBMASTER_API_KEY: ${{ secrets.BING_WEBMASTER_API_KEY }}
+          FORCE: ${{ github.event_name == 'workflow_dispatch' && inputs.force && '--force' || '' }}
+          SET_INTERVAL: ${{ github.event_name == 'workflow_dispatch' && inputs.set_interval != 'keep' && format('--set-interval={0}', inputs.set_interval) || '' }}
+        run: node .seo/monitor.mjs $FORCE $SET_INTERVAL --issue-file="$RUNNER_TEMP/seo-issue.md"
+
+      - name: Save results
+        if: steps.seo.outputs.recorded == 'true' || (github.event_name == 'workflow_dispatch' && inputs.set_interval != 'keep')
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .seo
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(seo): monitoring run ${{ steps.seo.outputs.date || 'config' }} [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          echo "::warning::Could not push .seo results (branch protection?). They are in the run's artifact."
+
+      - name: Open or update the regression issue
+        if: steps.seo.outputs.regressed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: seo-regression
+        run: |
+          gh label create "$LABEL" --color D93F0B --description "Found by the SEO monitor" --force >/dev/null
+          num=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --body-file "$RUNNER_TEMP/seo-issue.md"
+          else
+            gh issue create --title "SEO/performance regressions (${{ steps.seo.outputs.date }}): ${{ steps.seo.outputs.summary }}" \
+              --label "$LABEL" --body-file "$RUNNER_TEMP/seo-issue.md"
+          fi
+
+      - name: Upload report
+        if: steps.seo.outputs.due == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: seo-report-${{ steps.seo.outputs.date }}
+          path: |
+            __PROJECT_DIR__/.seo/reports/latest.md
+            __PROJECT_DIR__/.seo/history.json
+          include-hidden-files: true
+          retention-days: 90

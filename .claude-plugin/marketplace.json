@@ -1,0 +1,15 @@
+{
+  "name": "jurnyon-tools",
+  "description": "Jurnyon internal Claude Code tools.",
+  "owner": {
+    "name": "Jurnyon"
+  },
+  "plugins": [
+    {
+      "name": "seo-toolkit",
+      "source": "./",
+      "description": "SEO and performance agent with scheduled live-site monitoring and a Claude fix routine.",
+      "version": "1.0.0"
+    }
+  ]
+}

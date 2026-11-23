@@ -1,0 +1,19 @@
+{
+  "$help": "SEO monitor config. interval: weekly (Mondays) | 10days (1st, 11th, 21st) | 15days (1st, 16th) | monthly (1st). Dates are in `timezone`. thresholds are floors per device: a score below them is a regression. dropTolerance: how many points a score may fall since the last run before it counts as a regression (lab scores vary run to run).",
+  "site": "__SITE__",
+  "routes": __ROUTES__,
+  "strategies": ["mobile", "desktop"],
+  "interval": "__INTERVAL__",
+  "timezone": "__TIMEZONE__",
+  "runs": 1,
+  "thresholds": {
+    "mobile": { "performance": 50, "accessibility": 90, "best-practices": 90, "seo": 90 },
+    "desktop": { "performance": 80, "accessibility": 90, "best-practices": 90, "seo": 90 }
+  },
+  "dropTolerance": { "performance": 8, "default": 3 },
+  "maxCrawl": 60,
+  "keepRuns": 60,
+  "searchConsole": { "property": "__GSC_PROPERTY__" },
+  "bing": { "siteUrl": "__SITE__/" },
+  "indexNow": { "key": "", "submitOnChange": false }
+}
