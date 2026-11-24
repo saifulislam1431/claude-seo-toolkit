@@ -11,16 +11,20 @@ How a run works: a GitHub Actions workflow wakes daily and, on the scheduled day
 
 ## Install as a plugin (recommended)
 
-In Claude Code (CLI or VS Code extension):
+In a terminal (needs the Claude Code CLI; the `/plugin` command is not available in the VS Code extension chat):
 
 ```
-/plugin marketplace add saifulislam1431/claude-seo-toolkit
-/plugin install seo-toolkit@saifulislam1431
+claude plugin marketplace add saifulislam1431/claude-seo-toolkit
+claude plugin install seo-toolkit@saifulislam1431
 ```
+
+Or inside the CLI (`claude`), the same as slash commands: `/plugin marketplace add saifulislam1431/claude-seo-toolkit`, then `/plugin install seo-toolkit@saifulislam1431`. Once installed, the plugin also works in the VS Code extension.
+
+No CLI yet? Windows PowerShell: `irm https://claude.ai/install.ps1 | iex`. macOS or Linux: `curl -fsSL https://claude.ai/install.sh | bash`. On Windows it lands in `%USERPROFILE%.localin`, which may need adding to PATH.
 
 Restart Claude Code. As a plugin the commands are namespaced: `/seo-toolkit:seo-setup`, `/seo-toolkit:seo-schedule`, `/seo-toolkit:seo-audit`, and the agent is `seo-toolkit:seo`. You can also just ask, for example "set up SEO monitoring for this project".
 
-Get updates with `/plugin marketplace update saifulislam1431`, then restart.
+Get updates with `claude plugin marketplace update saifulislam1431` and `claude plugin update seo-toolkit@saifulislam1431`, then restart.
 
 ## Install from the zip
 
