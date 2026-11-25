@@ -1,0 +1,112 @@
+name: Lighthouse CI (__NAME__)
+
+# Builds __PROJECT_DIR__ and runs Lighthouse (mobile, median of 3) on its main
+# pages for every push to the default branch and every pull request that
+# touches it. The floors in __PROJECT_DIR__/lighthouserc.json fail the check
+# on regressions.
+#
+# On the default branch it also reports to the SEO agent: a failure writes
+# .seo/reports/ci-latest.md and opens (or comments on) the "seo-regression"
+# issue, so the Claude fix routine fixes it before it is deployed. The first
+# passing run after that marks the report as passing again.
+on:
+  push:
+    branches: [__DEFAULT_BRANCH__]
+    paths: ["__PATHS__", ".github/workflows/lighthouse-ci-__NAME__.yml"]
+  pull_request:
+    paths: ["__PATHS__", ".github/workflows/lighthouse-ci-__NAME__.yml"]
+  workflow_dispatch:
+
+concurrency:
+  group: lighthouse-__NAME__-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write # commit .seo/reports/ci-latest.md on the default branch
+      issues: write # open or update the seo-regression issue
+    defaults:
+      run:
+        working-directory: __PROJECT_DIR__
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: __PROJECT_DIR__/package-lock.json
+
+      - run: npm ci
+      - run: __BUILD_COMMAND__
+
+      - name: Run Lighthouse CI
+        id: lhci
+        run: npx -y @lhci/cli@0.14.0 autorun
+
+      - name: Score summary
+        if: always()
+        run: |
+          node -e '
+            const fs = require("fs");
+            const p = ".lighthouseci/manifest.json";
+            if (!fs.existsSync(p)) { console.log("No Lighthouse results."); process.exit(0); }
+            const rows = JSON.parse(fs.readFileSync(p, "utf8")).filter(r => r.isRepresentativeRun);
+            const pct = v => v == null ? "-" : Math.round(v * 100) + (v === 1 ? " ✅" : "");
+            let md = "## Lighthouse (mobile, median of 3) — target 100\n\n| Page | Perf | SEO | A11y | BP |\n|---|---|---|---|---|\n";
+            for (const r of rows) {
+              const s = r.summary;
+              md += `| ${new URL(r.url).pathname} | ${pct(s.performance)} | ${pct(s.seo)} | ${pct(s.accessibility)} | ${pct(s["best-practices"])} |\n`;
+            }
+            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, md);
+            console.log(md);
+          '
+
+      - name: Report to the SEO agent
+        id: ci
+        if: always() && github.event_name == 'push' && (steps.lhci.outcome == 'success' || steps.lhci.outcome == 'failure')
+        run: node .seo/ci-report.mjs --outcome=${{ steps.lhci.outcome }} --issue-file="$RUNNER_TEMP/ci-issue.md"
+
+      - name: Save the CI report
+        if: always() && steps.ci.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .seo/reports/ci-latest.md
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "chore(seo): Lighthouse CI ${{ steps.ci.outputs.summary }} [skip ci]"
+          for i in 1 2 3; do
+            git pull --rebase --autostash && git push && exit 0
+            sleep 5
+          done
+          echo "::warning::Could not push the CI report (branch protection?)."
+
+      - name: Open or update the regression issue
+        if: always() && steps.ci.outputs.failing == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LABEL: seo-regression
+        run: |
+          gh label create "$LABEL" --color D93F0B --description "Found by the SEO monitor" --force >/dev/null
+          num=$(gh issue list --label "$LABEL" --state open --limit 1 --json number --jq '.[0].number')
+          if [ -n "$num" ]; then
+            gh issue comment "$num" --body-file "$RUNNER_TEMP/ci-issue.md"
+          else
+            gh issue create --title "Lighthouse CI fails on the default branch: ${{ steps.ci.outputs.summary }}" \
+              --label "$LABEL" --body-file "$RUNNER_TEMP/ci-issue.md"
+          fi
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: lighthouse-reports
+          path: __PROJECT_DIR__/.lighthouseci
+          include-hidden-files: true
+          retention-days: 30

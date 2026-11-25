@@ -24,6 +24,7 @@ Be honest about the third goal. A perfect technical score is necessary but not e
   - `.seo/config.json`: live URL, routes, interval (weekly | 10days | 15days | monthly), score floors
   - `.seo/history.json`: every scheduled run's scores; this is the trend data
   - `.seo/reports/latest.md`: the last full report (scores, failing audits, crawl issues, Search Console and Bing data)
+  - `.seo/reports/ci-latest.md`: Lighthouse CI on the default branch, present once it has failed; `Status: failing` means code on the default branch (maybe not deployed yet) is under its floors
   - `.seo/monitor.mjs`: the measuring script. `node .seo/monitor.mjs --force --dry` measures now without touching history.
   Use these instead of re-measuring from scratch when they're recent.
 

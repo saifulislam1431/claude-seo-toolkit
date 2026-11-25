@@ -6,7 +6,7 @@ argument-hint: "[weekly|10days|15days|monthly]"
 
 # Set up SEO monitoring in this project
 
-Templates live next to this file in `templates/`: `monitor.mjs`, `config.json`, `seo-monitor.yml`, `routine-prompt.md`. Write files only into the current project. Don't commit, push or create the cloud routine without asking.
+Templates live next to this file in `templates/`: `monitor.mjs`, `config.json`, `seo-monitor.yml`, `routine-prompt.md`, and for Lighthouse CI `lighthouse-ci.yml`, `lighthouserc.json`, `ci-report.mjs`. Write files only into the current project. Don't commit, push or create the cloud routine without asking.
 
 ## 1. Find the project
 
@@ -35,9 +35,15 @@ Discover first, ask only for what's missing (use AskUserQuestion, one call, up t
 2. `PROJECT/.seo/config.json`: from `templates/config.json`, replacing `__SITE__`, `__ROUTES__` (JSON array), `__INTERVAL__`, `__TIMEZONE__`, `__GSC_PROPERTY__`. Leave the thresholds at the template defaults on first setup; after the first real run, set each floor ~5 points below the measured score so a real drop gets flagged (never above 100).
 3. `PROJECT/.seo/history.json`: `{"runs": []}` if it doesn't exist.
 4. `REPO/.github/workflows/seo-monitor-NAME.yml`: from `templates/seo-monitor.yml`, replacing `__NAME__`, `__PROJECT_DIR__`, and `__CRON__` = daily at 03:00 in TIMEZONE converted to UTC (Asia/Dhaka UTC+6 → `0 21 * * *`; UTC → `0 3 * * *`). Monorepo: keep one workflow per project.
-5. **IndexNow (Bing, Yandex, Seznam, Naver):** generate a key with `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`, write it as the only content of `<public web root>/<key>.txt` (e.g. `public/` for Next/Vite/Astro, the web root for static or PHP sites), and set `indexNow.key` in config. Keep `submitOnChange: false` until the user says yes to pinging; tell them it pings only URLs new to the sitemap.
-6. `PROJECT/.claude/seo-notes.md`: create it from the template in the `seo` agent definition if missing. Add or update a `## Monitoring` section: interval, workflow path, which secrets are set, routine id once it exists.
-7. If the project has a `.gitignore` that ignores dotfolders, make sure `.seo/` is not ignored.
+5. **Lighthouse CI on every push and pull request** (projects with an npm build and a start command; skip for static or PHP sites unless they can be served locally):
+   - `PROJECT/.seo/ci-report.mjs`: copy of `templates/ci-report.mjs`.
+   - If the repo already runs Lighthouse CI (`@lhci/cli` in a workflow, a `lighthouserc.*`): keep its config and add to that workflow what the template adds: `id: lhci` on the LHCI step, job `permissions` `contents: write` + `issues: write`, the steps "Report to the SEO agent", "Save the CI report" and "Open or update the regression issue", and `include-hidden-files: true` on the artifact upload.
+   - Otherwise: `PROJECT/lighthouserc.json` from `templates/lighthouserc.json`. `__START_COMMAND__` = the production start command (`npm start`; build first in the workflow, never the dev server); `__READY_PATTERN__` = a word the server prints when ready (`Ready|ready` for Next.js, `Local:` for Vite preview, `listening` for many Node servers); `__LOCAL_URLS__` = ROUTES on `http://localhost:<port>`. Floors start at the template defaults; after the first CI run set them 5–10 points under the median scores.
+   - `REPO/.github/workflows/lighthouse-ci-NAME.yml` from `templates/lighthouse-ci.yml`: `__NAME__`, `__PROJECT_DIR__`, `__DEFAULT_BRANCH__` (from `git symbolic-ref refs/remotes/origin/HEAD`), `__PATHS__` (`PROJECT_DIR/**`, or `**` when PROJECT_DIR is `.`), `__BUILD_COMMAND__` (`npm run build`).
+   - On the default branch a failing run writes `.seo/reports/ci-latest.md` and opens or updates the `seo-regression` issue; the fix routine reads that file, so a regression is fixed before it is deployed.
+6. **IndexNow (Bing, Yandex, Seznam, Naver):** generate a key with `node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"`, write it as the only content of `<public web root>/<key>.txt` (e.g. `public/` for Next/Vite/Astro, the web root for static or PHP sites), and set `indexNow.key` in config. Keep `submitOnChange: false` until the user says yes to pinging; tell them it pings only URLs new to the sitemap.
+7. `PROJECT/.claude/seo-notes.md`: create it from the template in the `seo` agent definition if missing. Add or update a `## Monitoring` section: interval, workflow path, which secrets are set, routine id once it exists.
+8. If the project has a `.gitignore` that ignores dotfolders, make sure `.seo/` is not ignored.
 
 ## 4. Test locally
 
@@ -54,8 +60,8 @@ Write this as a short checklist in the user's language:
    - `GSC_SERVICE_ACCOUNT` (optional): Google Cloud → IAM → Service accounts → create → Keys → Add key → JSON; paste the whole JSON. Enable "Google Search Console API" in the project. In Search Console → Settings → Users and permissions → Add user → the service account's `client_email`, permission Restricted.
    - `BING_WEBMASTER_API_KEY` (optional): Bing Webmaster Tools → Settings (gear) → API access → API key.
    - With the `gh` CLI: `gh secret set PAGESPEED_API_KEY`, `gh secret set GSC_SERVICE_ACCOUNT < key.json`.
-2. Commit and push `.seo/`, the workflow and the IndexNow key file (offer to do it). The first run happens on the next scheduled day, or right away via Actions → "SEO monitor (NAME)" → Run workflow.
-3. **Fix routine (optional, needs GitHub connected at https://claude.ai/connect-github):** offer to create a Claude cloud routine with the `schedule` skill / RemoteTrigger:
+2. Commit and push `.seo/`, the workflows, `lighthouserc.json` and the IndexNow key file (offer to do it). The first run happens on the next scheduled day, or right away via Actions → "SEO monitor (NAME)" → Run workflow.
+3. **Fix routine (optional; needs Claude Code cloud access to GitHub on the creator's claude.ai account: in the terminal CLI run `gh auth login`, then `claude` → `/web-setup`, which prints "Connected as <user>". On Team or Enterprise an org Owner must first turn on the GitHub connector and Quick setup. The claude.ai "github" MCP connector does not count, and `/web-setup` is not available in the VS Code extension):** offer to create a Claude cloud routine with the `schedule` skill / RemoteTrigger:
    - prompt: `templates/routine-prompt.md` with `__PROJECT_DIR__` and `__SITE__` replaced
    - cron: same calendar days as the interval, at 08:00 in TIMEZONE converted to UTC. Pick a local hour that stays on the same UTC date (for Asia/Dhaka 08:00 = 02:00 UTC): weekly `0 2 * * 1`, 10days `0 2 1,11,21 * *`, 15days `0 2 1,16 * *`, monthly `0 2 1 * *`.
    - repo: the project's GitHub URL; model: the default.

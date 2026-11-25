@@ -3,11 +3,11 @@
 An SEO and performance agent, plus scheduled monitoring for any live website:
 
 - **`seo` agent**: audits and fixes SEO and performance issues (Lighthouse, Core Web Vitals, metadata, sitemap, structured data, Search Console and Bing setup).
-- **`/seo-setup`**: installs monitoring in the current project. It adds `.seo/` (a zero-dependency monitor), a GitHub Actions workflow and an IndexNow key file.
+- **`/seo-setup`**: installs monitoring in the current project. It adds `.seo/` (a zero-dependency monitor), a scheduled GitHub Actions workflow, Lighthouse CI on every push and pull request, and an IndexNow key file.
 - **`/seo-schedule`**: shows or changes the interval (weekly, 10days, 15days, monthly), or pauses it.
 - **`/seo-audit [fix]`**: measures the live site now and has the agent explain or fix what it finds.
 
-How a run works: a GitHub Actions workflow wakes daily and, on the scheduled days, measures the live site with PageSpeed Insights (mobile and desktop), checks robots.txt, the sitemap and every page's title, description, canonical and noindex, and reads Search Console and Bing data. It commits the results to `.seo/`, opens a GitHub issue when something regresses, and sends new sitemap URLs to IndexNow. An optional Claude cloud routine reads the report on the same days and opens a pull request with fixes; a person reviews and merges.
+How a run works: a GitHub Actions workflow wakes daily and, on the scheduled days, measures the live site with PageSpeed Insights (mobile and desktop), checks robots.txt, the sitemap and every page's title, description, canonical and noindex, and reads Search Console and Bing data. It commits the results to `.seo/`, opens a GitHub issue when something regresses, and sends new sitemap URLs to IndexNow. Lighthouse CI also checks every push and pull request; when the default branch fails it, the same issue is opened and `.seo/reports/ci-latest.md` is written, so a regression is caught before it is deployed. An optional Claude cloud routine reads the report on the same days and opens a pull request with fixes; a person reviews and merges.
 
 ## Install as a plugin (recommended)
 

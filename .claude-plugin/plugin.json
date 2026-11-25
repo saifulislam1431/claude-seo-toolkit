@@ -1,6 +1,6 @@
 {
   "name": "seo-toolkit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SEO and performance agent with scheduled live-site monitoring (PageSpeed, crawl checks, Search Console, Bing, IndexNow) on a weekly, 10-day, 15-day or monthly interval, plus a Claude routine that fixes regressions in a PR.",
   "author": {
     "name": "Md. Saiful Islam",

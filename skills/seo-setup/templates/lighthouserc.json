@@ -1,0 +1,29 @@
+{
+  "ci": {
+    "collect": {
+      "startServerCommand": "__START_COMMAND__",
+      "startServerReadyPattern": "__READY_PATTERN__",
+      "startServerReadyTimeout": 60000,
+      "url": __LOCAL_URLS__,
+      "numberOfRuns": 3,
+      "settings": {
+        "chromeFlags": "--no-sandbox --headless=new"
+      }
+    },
+    "assert": {
+      "assertions": {
+        "categories:performance": ["error", { "minScore": 0.5, "aggregationMethod": "median-run" }],
+        "categories:seo": ["error", { "minScore": 0.9, "aggregationMethod": "median-run" }],
+        "categories:accessibility": ["error", { "minScore": 0.9, "aggregationMethod": "median-run" }],
+        "categories:best-practices": ["error", { "minScore": 0.9, "aggregationMethod": "median-run" }],
+        "largest-contentful-paint": ["warn", { "maxNumericValue": 2500 }],
+        "cumulative-layout-shift": ["warn", { "maxNumericValue": 0.1 }],
+        "total-blocking-time": ["warn", { "maxNumericValue": 200 }]
+      }
+    },
+    "upload": {
+      "target": "filesystem",
+      "outputDir": ".lighthouseci"
+    }
+  }
+}
